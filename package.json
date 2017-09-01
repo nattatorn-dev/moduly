@@ -1,6 +1,6 @@
 {
   "name": "moduly",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Generating code for the module with just one command.",
   "main": "index.js",
   "author": "nattorn-dev",
@@ -10,7 +10,10 @@
     "type": "git",
     "url": "https://github.com/nattatorn-dev/moduly.git"
   },
-  "keywords": ["module", "module creator"],
+  "keywords": [
+    "module",
+    "module creator"
+  ],
   "dependencies": {
     "chalk": "^2.1.0",
     "fs-promise": "^2.0.3",
@@ -25,7 +28,10 @@
     "prettier": "^1.6.1"
   },
   "lint-staged": {
-    "*.js": ["prettier --write", "git add"]
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "scripts": {
     "start": "node ./bin/moduly.js",
