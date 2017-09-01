@@ -4,7 +4,8 @@ const Listr = require('listr')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
 
-const createComponent = module => {
+const createComponent = ctx => {
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   const containersDir = module + '/containers'
@@ -24,12 +25,15 @@ const createComponent = module => {
   })
 }
 
-const createActionsFile = module => {
+const createActionsFile = ctx => {
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
     `${module}/actions.js`,
-    `const action = ( type, payload = {} ) => ( { type, ...payload } )
+    moduleType === 'module'
+      ? ''
+      : `const action = ( type, payload = {} ) => ( { type, ...payload } )
 
 const ${module} = {
   request: () => action( ${moduleStyleUpper}_REQUEST ),
@@ -47,12 +51,15 @@ export {
   )
 }
 
-const createTypesFile = module => {
+const createTypesFile = ctx => {
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
     `${module}/types.js`,
-    `const ${moduleStyleUpper}_FAILURE = '${moduleStyleUpper}_FAILURE'
+    moduleType === 'module'
+      ? ''
+      : `const ${moduleStyleUpper}_FAILURE = '${moduleStyleUpper}_FAILURE'
 const ${moduleStyleUpper}_REQUEST = '${moduleStyleUpper}_REQUEST'
 const ${moduleStyleUpper}_SUCCESS = '${moduleStyleUpper}_SUCCESS'
 
@@ -68,12 +75,15 @@ export {
   )
 }
 
-const createReducerFile = module => {
+const createReducerFile = ctx => {
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
     `${module}/reducer.js`,
-    `import {
+    moduleType === 'module'
+      ? ''
+      : `import {
   ${moduleStyleUpper}_FAILURE,
   ${moduleStyleUpper}_REQUEST,
   ${moduleStyleUpper}_SUCCESS,
@@ -105,10 +115,13 @@ export default ( state = INITIAL_STATE, action ) => {
   )
 }
 
-const createSelectorsFile = module => {
+const createSelectorsFile = ctx => {
+  const { moduleNmae: module, moduleType } = ctx
   return fs.writeFile(
     `${module}/selectors.js`,
-    `const ${module}ByIdSelector = state => state.${module}.${module}ById
+    moduleType === 'module'
+      ? ''
+      : `const ${module}ByIdSelector = state => state.${module}.${module}ById
 const ${module}IdsSelector = state => state.${module}.${module}Ids
 const isFetchingSelector = state => state.${module}.isFetching
 
@@ -124,7 +137,8 @@ export {
   )
 }
 
-const createSagaFile = module => {
+const createSagaFile = ctx => {
+  const { moduleNmae: module } = ctx
   return fs.writeFile(`${module}/saga.js`, ``, err => {
     if (err) throw err
   })
@@ -142,7 +156,7 @@ ${middleware === 'redux-saga'
       ? `import saga from './saga'
 `
       : ``}
-export { actions, selectors, types, reducers${middleware === 'redux-saga'
+export { actions, selectors, types, reducer${middleware === 'redux-saga'
       ? ', saga'
       : ''} }`,
     function(err) {
@@ -160,32 +174,32 @@ const tasks = new Listr([
   },
   {
     title: 'create actions file',
-    task: ({ moduleNmae }) => {
-      return createActionsFile(moduleNmae)
+    task: ctx => {
+      return createActionsFile(ctx)
     }
   },
   {
     title: 'create types file',
-    task: ({ moduleNmae }) => {
-      return createTypesFile(moduleNmae)
+    task: ctx => {
+      return createTypesFile(ctx)
     }
   },
   {
     title: 'create reducer file',
-    task: ({ moduleNmae }) => {
-      return createReducerFile(moduleNmae)
+    task: ctx => {
+      return createReducerFile(ctx)
     }
   },
   {
     title: 'create selector file',
-    task: ({ moduleNmae }) => {
-      return createSelectorsFile(moduleNmae)
+    task: ctx => {
+      return createSelectorsFile(ctx)
     }
   },
   {
     title: 'create saga file',
-    task: ({ moduleNmae }) => {
-      return createSagaFile(moduleNmae)
+    task: ctx => {
+      return createSagaFile(ctx)
     },
     skip: ctx => {
       return ctx.middleware !== 'redux-saga'
@@ -193,8 +207,8 @@ const tasks = new Listr([
   },
   {
     title: 'create component',
-    task: ({ moduleNmae }) => {
-      return createComponent(moduleNmae)
+    task: ctx => {
+      return createComponent(ctx)
     },
     skip: ctx => {
       return !ctx.includeComponent
@@ -218,12 +232,7 @@ const questions = [
     type: 'list',
     name: 'moduleType',
     message: 'Which type are you using?',
-    choices: ['module', 'module (handle fetching)']
-  },
-  {
-    type: 'confirm',
-    name: 'includeComponent',
-    message: 'include Component?'
+    choices: ['module', 'module ( API handle )']
   },
   {
     type: 'confirm',
@@ -233,9 +242,14 @@ const questions = [
   {
     type: 'list',
     name: 'middleware',
-    message: 'Which middleware are you using with redux',
+    message: 'Which middleware are you using with redux?',
     choices: ['redux-thunk', 'redux-saga'],
     when: answers => answers.haveMiddleware
+  },
+  {
+    type: 'confirm',
+    name: 'includeComponent',
+    message: 'Do you want to add component?'
   }
 ]
 
@@ -244,7 +258,6 @@ module.exports = function run() {
   return inquirer
     .prompt(questions)
     .then(anwsers => {
-      console.log('anwsers', anwsers)
       return tasks.run(anwsers)
     })
     .then(() => console.log(`You're all set!  💅🏻`))
