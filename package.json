@@ -10,16 +10,13 @@
     "type": "git",
     "url": "https://github.com/nattatorn-dev/moduly.git"
   },
-  "keywords": [
-    "module",
-    "module creator"
-  ],
+  "keywords": ["module", "module creator"],
   "dependencies": {
     "chalk": "^2.1.0",
     "fs-promise": "^2.0.3",
     "inquirer": "^3.2.2",
     "listr": "^0.12.0",
-    "mkdir": "^0.5.1",
+    "mkdirp": "^0.5.1",
     "shelljs": "^0.7.8"
   },
   "devDependencies": {
@@ -28,16 +25,13 @@
     "prettier": "^1.6.1"
   },
   "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ]
+    "*.js": ["prettier --write", "git add"]
   },
   "scripts": {
-    "start": "node ./bin/moduly.js",
+    "start": "node bin/moduly.js",
     "precommit": "lint-staged"
   },
   "bin": {
-    "moduly": "./bin/moduly.js"
+    "moduly": "bin/moduly.js"
   }
 }
