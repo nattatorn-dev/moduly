@@ -4,11 +4,15 @@ const Listr = require('listr')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
 
+const capitalize = str => {
+  return str[0].toUpperCase() + str.substring(1)
+}
+
 const createComponent = ctx => {
   const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
-  const containersDir = module + '/containers'
+  const containersDir = capitalize(module) + '/containers'
   mkdirp(containersDir, err => {
     const indexDir = containersDir + '/index.js'
     fs.writeFile(indexDir, '', err => {
@@ -16,7 +20,7 @@ const createComponent = ctx => {
     })
   })
 
-  const componentsDir = module + '/components'
+  const componentsDir = capitalize(module) + '/components'
   mkdirp(componentsDir, err => {
     const indexDir = componentsDir + '/index.js'
     fs.writeFile(indexDir, '', err => {
@@ -30,21 +34,27 @@ const createActionsFile = ctx => {
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
-    `${module}/actions.js`,
+    `${capitalize(module)}/actions.js`,
     moduleType === 'module'
       ? ''
-      : `const action = ( type, payload = {} ) => ( { type, ...payload } )
+      : `import {
+  ${moduleStyleUpper}_REQUEST,
+  ${moduleStyleUpper}_SUCCESS,
+  ${moduleStyleUpper}_FAILURE,
+} from './types'
+
+const action = ( type, payload = {} ) => ( { type, ...payload } )
 
 const ${module} = {
   request: () => action( ${moduleStyleUpper}_REQUEST ),
-  success: ${module} => action( ${moduleStyleUpper}_SUCCESS, { products } ),
+  success: ${module} => action( ${moduleStyleUpper}_SUCCESS, { ${module} } ),
   failure: error => action( ${moduleStyleUpper}_FAILURE, { error } ),
 }
 
 export {
   ${module},
 }
-    `,
+`,
     err => {
       if (err) throw err
     }
@@ -56,7 +66,7 @@ const createTypesFile = ctx => {
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
-    `${module}/types.js`,
+    `${capitalize(module)}/types.js`,
     moduleType === 'module'
       ? ''
       : `const ${moduleStyleUpper}_FAILURE = '${moduleStyleUpper}_FAILURE'
@@ -68,7 +78,7 @@ export {
   ${moduleStyleUpper}_REQUEST,
   ${moduleStyleUpper}_SUCCESS,
 }
-    `,
+`,
     err => {
       if (err) throw err
     }
@@ -80,7 +90,7 @@ const createReducerFile = ctx => {
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
-    `${module}/reducer.js`,
+    `${capitalize(module)}/reducer.js`,
     moduleType === 'module'
       ? ''
       : `import {
@@ -108,7 +118,7 @@ export default ( state = INITIAL_STATE, action ) => {
     return state
   }
 }
-  `,
+`,
     err => {
       if (err) throw err
     }
@@ -118,7 +128,7 @@ export default ( state = INITIAL_STATE, action ) => {
 const createSelectorsFile = ctx => {
   const { moduleNmae: module, moduleType } = ctx
   return fs.writeFile(
-    `${module}/selectors.js`,
+    `${capitalize(module)}/selectors.js`,
     moduleType === 'module'
       ? ''
       : `const ${module}ByIdSelector = state => state.${module}.${module}ById
@@ -130,34 +140,99 @@ export {
   ${module}IdsSelector,
   isFetchingSelector,
 }
-    `,
+`,
     err => {
       if (err) throw err
     }
   )
 }
 
-const createSagaFile = ctx => {
+const createSagasFile = ctx => {
   const { moduleNmae: module } = ctx
-  return fs.writeFile(`${module}/saga.js`, ``, err => {
-    if (err) throw err
-  })
+  const moduleStyleUpper = module.toUpperCase()
+
+  return fs.writeFile(
+    `${capitalize(module)}/sagas.js`,
+    `import { call, take, put, fork } from 'redux-saga/effects'
+  
+import { ${module} } from './actions'
+import { ${moduleStyleUpper}_REQUEST } from './types'
+import normalize from './normalize'
+
+const fetchApi = () => {
+  return new Promise( resolve => {
+    fetch( 'https://jsonplaceholder.typicode.com/posts' ).then( res =>
+      resolve( res.json() )
+    )
+  } )
+}
+
+function* on${module}Request() {
+  while ( yield take( ${moduleStyleUpper}_REQUEST ) ) {
+    try {
+      const response = yield call( fetchApi )
+      const normalized = normalize( response )
+      yield put( ${module}.success( normalized ) )
+    } catch ( e ) {
+      yield put( ${module}.failure( e ) )
+    }
+  }
+}
+
+export default [ fork( on${module}Request ) ]`,
+    err => {
+      if (err) throw err
+    }
+  )
+}
+
+const createNormalizeFile = ctx => {
+  const { moduleNmae: module } = ctx
+  const moduleStyleUpper = module.toUpperCase()
+
+  return fs.writeFile(
+    `${capitalize(module)}/normalize.js`,
+    `const normalize = data => {
+  return data.reduce(
+    ( p, c ) => {
+      return {
+        ...p,
+        ${module}ById: {
+          ...p.${module}ById,
+          [ c.id ]: c,
+        },
+        ${module}Ids: [ ...p.${module}Ids, c.id ],
+      }
+    },
+    {
+      ${module}ById: {},
+      ${module}Ids: [],
+    }
+  )
+}
+
+export default normalize
+`,
+    err => {
+      if (err) throw err
+    }
+  )
 }
 
 const createIndexFile = ctx => {
   const { moduleNmae, middleware } = ctx
   return fs.writeFile(
-    `${moduleNmae}/index.js`,
+    `${capitalize(moduleNmae)}/index.js`,
     `import * as actions from './actions'
 import * as selectors from './selectors'
 import * as types from './types'
 import reducer from './reducer'
 ${middleware === 'redux-saga'
-      ? `import saga from './saga'
+      ? `import sagas from './sagas'
 `
       : ``}
 export { actions, selectors, types, reducer${middleware === 'redux-saga'
-      ? ', saga'
+      ? ', sagas'
       : ''} }`,
     function(err) {
       if (err) throw err
@@ -169,7 +244,7 @@ const tasks = new Listr([
   {
     title: 'create folder',
     task: ({ moduleNmae }) => {
-      return mkdirp(moduleNmae, err => {})
+      return mkdirp(capitalize(moduleNmae), err => {})
     }
   },
   {
@@ -197,12 +272,18 @@ const tasks = new Listr([
     }
   },
   {
-    title: 'create saga file',
+    title: 'create sagas file',
     task: ctx => {
-      return createSagaFile(ctx)
+      return createSagasFile(ctx)
     },
     skip: ctx => {
       return ctx.middleware !== 'redux-saga'
+    }
+  },
+  {
+    title: 'create normalize file',
+    task: ctx => {
+      return createNormalizeFile(ctx)
     }
   },
   {
@@ -243,7 +324,7 @@ const questions = [
     type: 'list',
     name: 'middleware',
     message: 'Which middleware are you using with redux?',
-    choices: ['redux-thunk', 'redux-saga'],
+    choices: ['redux-saga'],
     when: answers => answers.haveMiddleware
   },
   {
