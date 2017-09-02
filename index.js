@@ -148,12 +148,14 @@ export {
 }
 
 const createSagasFile = ctx => {
-  const { moduleNmae: module } = ctx
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
     `${capitalize(module)}/sagas.js`,
-    `import { call, take, put, fork } from 'redux-saga/effects'
+    moduleType === 'module'
+      ? ''
+      : `import { call, take, put, fork } from 'redux-saga/effects'
   
 import { ${module} } from './actions'
 import { ${moduleStyleUpper}_REQUEST } from './types'
@@ -187,12 +189,14 @@ export default [ fork( on${module}Request ) ]`,
 }
 
 const createNormalizeFile = ctx => {
-  const { moduleNmae: module } = ctx
+  const { moduleNmae: module, moduleType } = ctx
   const moduleStyleUpper = module.toUpperCase()
 
   return fs.writeFile(
     `${capitalize(module)}/normalize.js`,
-    `const normalize = data => {
+    moduleType === 'module'
+      ? ''
+      : `const normalize = data => {
   return data.reduce(
     ( p, c ) => {
       return {
