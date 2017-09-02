@@ -1,5 +1,5 @@
 # Moduly
-Generating code for the module with just one command (feature folders / ducks).
+Generate sample module with [name] with just one command.
 
 ```bash
 $ npm install -g moduly
