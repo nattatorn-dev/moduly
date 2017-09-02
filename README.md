@@ -6,11 +6,11 @@ $ npm install -g moduly
 $ moduly
 ```
 
-# Feature
-now support only redux-saga middleware.
+## Feature
+now only support redux-saga middleware.
 
 ![Screenshot](https://thumbs.gfycat.com/CorruptFlickeringGentoopenguin-size_restricted.gif)
 
-#TODO
+### TODO
 - [ ] redux-thunk
 - [ ] Add more options package such as reselect, immutable, normalize
