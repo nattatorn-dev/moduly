@@ -5,5 +5,5 @@ Generating code for the module with just one command.
 $ npm install -g moduly
 $ moduly
 ```
-![Screenshot](https://media.giphy.com/media/xT9IgjFyV7bb1mK4g0/giphy.gif)
+![Screenshot](https://thumbs.gfycat.com/CorruptFlickeringGentoopenguin-size_restricted.gif)
 
