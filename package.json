@@ -1,6 +1,6 @@
 {
   "name": "moduly",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Generating code for the module with just one command.",
   "main": "index.js",
   "author": "nattorn-dev",
