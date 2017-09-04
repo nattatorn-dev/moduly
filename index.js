@@ -51,7 +51,10 @@ const createActionsFile = ctx => {
   ${moduleStyleUpper}_SUCCESS,
   ${moduleStyleUpper}_FAILURE,
 } from './types'
-
+${middleware === 'redux-thunk'
+          ? `import normalize from './normalize'
+`
+          : ''}
 const action = ( type, payload = {} ) => ( { type, ...payload } )
 
 const ${module} = {
