@@ -9,20 +9,24 @@ const capitalize = str => {
 }
 
 const createComponent = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const {
+    moduleNmae: module,
+    moduleStyleUpper,
+    moduleStyleCapitalize,
+    moduleType
+  } = ctx
 
-  const containersDir = capitalize(module) + '/containers'
+  const containersDir = `${moduleStyleCapitalize}/containers`
   mkdirp(containersDir, err => {
-    const indexDir = containersDir + '/index.js'
+    const indexDir = `${containersDir}/index.js`
     fs.writeFile(indexDir, '', err => {
       if (err) throw err
     })
   })
 
-  const componentsDir = capitalize(module) + '/components'
+  const componentsDir = `${moduleStyleCapitalize}/components`
   mkdirp(componentsDir, err => {
-    const indexDir = componentsDir + '/index.js'
+    const indexDir = `${componentsDir}/index.js`
     fs.writeFile(indexDir, '', err => {
       if (err) throw err
     })
@@ -30,8 +34,13 @@ const createComponent = ctx => {
 }
 
 const createActionsFile = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const {
+    moduleNmae: module,
+    middleware,
+    moduleStyleCapitalize,
+    moduleStyleUpper,
+    moduleType
+  } = ctx
 
   return fs.writeFile(
     `${capitalize(module)}/actions.js`,
@@ -50,10 +59,22 @@ const ${module} = {
   success: ${module} => action( ${moduleStyleUpper}_SUCCESS, { ${module} } ),
   failure: error => action( ${moduleStyleUpper}_FAILURE, { error } ),
 }
-
-export {
-  ${module},
+${middleware === 'redux-thunk'
+          ? `
+const fetch${moduleStyleCapitalize} = () => {
+  return dispatch => {
+    dispatch( ${module}.request() )
+    return fetch( 'https://jsonplaceholder.typicode.com/posts' )
+      .then( res => ( res.ok ? res.json() : dispatch( ${module}.failure() ) ) )
+      .then( res => normalize( res ) )
+      .then( normalized => dispatch( ${module}.success( normalized ) ) )
+  }
 }
+`
+          : ''}
+export { ${module}${middleware === 'redux-thunk'
+          ? `, fetch${moduleStyleCapitalize}`
+          : ''} }
 `,
     err => {
       if (err) throw err
@@ -62,8 +83,7 @@ export {
 }
 
 const createTypesFile = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const { moduleNmae: module, moduleStyleUpper, moduleType } = ctx
 
   return fs.writeFile(
     `${capitalize(module)}/types.js`,
@@ -86,8 +106,7 @@ export {
 }
 
 const createReducerFile = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const { moduleNmae: module, moduleStyleUpper, moduleType } = ctx
 
   return fs.writeFile(
     `${capitalize(module)}/reducer.js`,
@@ -148,8 +167,12 @@ export {
 }
 
 const createSagasFile = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const {
+    moduleNmae: module,
+    moduleStyleCapitalize,
+    moduleStyleUpper,
+    moduleType
+  } = ctx
 
   return fs.writeFile(
     `${capitalize(module)}/sagas.js`,
@@ -169,7 +192,7 @@ const fetchApi = () => {
   } )
 }
 
-function* on${module}Request() {
+function* fetch${moduleStyleCapitalize}() {
   while ( yield take( ${moduleStyleUpper}_REQUEST ) ) {
     try {
       const response = yield call( fetchApi )
@@ -181,7 +204,7 @@ function* on${module}Request() {
   }
 }
 
-export default [ fork( on${module}Request ) ]`,
+export default [ fork( fetch${moduleStyleCapitalize} ) ]`,
     err => {
       if (err) throw err
     }
@@ -189,8 +212,7 @@ export default [ fork( on${module}Request ) ]`,
 }
 
 const createNormalizeFile = ctx => {
-  const { moduleNmae: module, moduleType } = ctx
-  const moduleStyleUpper = module.toUpperCase()
+  const { moduleNmae: module, moduleStyleUpper, moduleType } = ctx
 
   return fs.writeFile(
     `${capitalize(module)}/normalize.js`,
@@ -328,9 +350,22 @@ const questions = [
     type: 'list',
     name: 'middleware',
     message: 'Which middleware are you using with redux?',
-    choices: ['redux-saga'],
+    choices: ['redux-saga', 'redux-thunk'],
     when: answers => answers.haveMiddleware
   },
+  // {
+  //   type: 'checkbox',
+  //   message: 'Select Toppings (number 1 ~ 2)',
+  //   name: 'toppings',
+  //   choices: [
+  //     {
+  //       name: 'immutable'
+  //     },
+  //     {
+  //       name: 'reselect'
+  //     }
+  //   ]
+  // },
   {
     type: 'confirm',
     name: 'includeComponent',
@@ -343,7 +378,11 @@ module.exports = function run() {
   return inquirer
     .prompt(questions)
     .then(anwsers => {
-      return tasks.run(anwsers)
+      const computedAnwsers = Object.assign(anwsers, {
+        moduleStyleUpper: anwsers.moduleNmae.toUpperCase(),
+        moduleStyleCapitalize: capitalize(anwsers.moduleNmae)
+      })
+      return tasks.run(computedAnwsers)
     })
     .then(() => console.log(`You're all set!  💅🏻`))
     .catch(err => console.error(err))
